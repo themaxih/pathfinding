@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 /*
 
@@ -103,11 +106,26 @@ PLAN
 // Déclarer "carte" en tant qu'interface permet de poour mettre plusieurs type de valeurs à l'interieur ( dans ce cas, des string et des int )
 var carte []interface{} = make([]interface{}, 5)
 
-var niveau int = 3
-
 var joueur string = "P"
 var mur string = "W"
 var ennemi string = "E"
+
+// joueurX représente le tableau dans lequel le joueur est
+// joueurY représenta la case du tableau dans lequel le joueur est
+var joueurX int
+var joueurY int
+
+// Définit la valeur initiale pour les cases adjacentes au joueur
+var valeurInitCase int = 1
+
+// ================================================================================================================================
+
+var niveau int = 1
+
+var tableauJoueur int = 4
+var caseJoueur int = 0
+
+// ================================================================================================================================
 
 func main() {
 	GenererCarte()
@@ -121,14 +139,238 @@ func GenererCarte() {
 		carte[i] = []interface{}{0, 0, 0, 0, 0}
 	}
 
-	// Faire en sorte de pouvoir choisir avec une variable la position du joueur sur la carte
-
-	// Ajouter le joueur au coordonnés (0,4) case 0 du tableau 4
-	carte[4].([]interface{})[0] = joueur
+	// Placer le joueur
+	carte[tableauJoueur].([]interface{})[caseJoueur] = joueur
 
 	GenererMurs()
 
 	SelectionNiveau()
+
+	PathGeneration()
+
+	fmt.Println("Map de base")
+	Afficher()
+
+	Move()
+}
+
+// Dans cette fonction, je dois faire bouger les ennemis et le joueur de façon alterné ( print le tableau à chaques changement )
+func Move() {
+	/* Mettre dans un tableau, les 8 cases qui sont autour d'un ennemi dans ce genre :
+
+		 0 1 2
+	   3 E 4 -> [0, 1, 2, 3, 4, 5, 6, 7]
+		 5 6 7
+
+	*/
+	for t := 0; t < len(carte); t++ {
+		for c := 0; c < len(carte[t].([]interface{})); c++ {
+			if carte[t].([]interface{})[c] != ennemi {
+				continue
+			} else {
+				// Le tableau dans lequel est l'ennemi
+				var cooEnnemiX int = t
+				// La case du tableau dans lequel est l'ennemi
+				var cooEnnemiY int = c
+
+				var casesAdjacentes []interface{} = make([]interface{}, 8)
+
+				if t == 0 {
+					if c == 0 {
+						casesAdjacentes[0] = mur
+						casesAdjacentes[1] = mur
+						casesAdjacentes[2] = mur
+						casesAdjacentes[3] = mur
+						casesAdjacentes[4] = carte[t].([]interface{})[c+1]
+						casesAdjacentes[5] = mur
+						casesAdjacentes[6] = carte[t+1].([]interface{})[c]
+						casesAdjacentes[7] = carte[t+1].([]interface{})[c+1]
+					}
+					if c == 4 {
+						casesAdjacentes[0] = mur
+						casesAdjacentes[1] = mur
+						casesAdjacentes[2] = mur
+						casesAdjacentes[3] = carte[t].([]interface{})[c-1]
+						casesAdjacentes[4] = mur
+						casesAdjacentes[5] = carte[t+1].([]interface{})[c-1]
+						casesAdjacentes[6] = carte[t+1].([]interface{})[c]
+						casesAdjacentes[7] = mur
+					}
+					if c == 1 || c == 2 || c == 3 {
+						casesAdjacentes[0] = mur
+						casesAdjacentes[1] = mur
+						casesAdjacentes[2] = mur
+						casesAdjacentes[3] = carte[t].([]interface{})[c-1]
+						casesAdjacentes[4] = carte[t].([]interface{})[c+1]
+						casesAdjacentes[5] = carte[t+1].([]interface{})[c-1]
+						casesAdjacentes[6] = carte[t+1].([]interface{})[c]
+						casesAdjacentes[7] = carte[t+1].([]interface{})[c+1]
+					}
+				}
+
+				if t == 1 || t == 2 || t == 3 {
+					if c == 0 {
+						casesAdjacentes[0] = mur
+						casesAdjacentes[1] = carte[t-1].([]interface{})[c]
+						casesAdjacentes[2] = carte[t-1].([]interface{})[c+1]
+						casesAdjacentes[3] = mur
+						casesAdjacentes[4] = carte[t].([]interface{})[c+1]
+						casesAdjacentes[5] = mur
+						casesAdjacentes[6] = carte[t+1].([]interface{})[c]
+						casesAdjacentes[7] = carte[t+1].([]interface{})[c+1]
+					}
+					if c == 4 {
+						casesAdjacentes[0] = carte[t-1].([]interface{})[c-1]
+						casesAdjacentes[1] = carte[t-1].([]interface{})[c]
+						casesAdjacentes[2] = mur
+						casesAdjacentes[3] = carte[t].([]interface{})[c-1]
+						casesAdjacentes[4] = mur
+						casesAdjacentes[5] = carte[t+1].([]interface{})[c-1]
+						casesAdjacentes[6] = carte[t+1].([]interface{})[c]
+						casesAdjacentes[7] = mur
+					}
+					if c == 1 || c == 2 || c == 3 {
+						casesAdjacentes[0] = carte[t-1].([]interface{})[c-1]
+						casesAdjacentes[1] = carte[t-1].([]interface{})[c]
+						casesAdjacentes[2] = carte[t-1].([]interface{})[c+1]
+						casesAdjacentes[3] = carte[t].([]interface{})[c-1]
+						casesAdjacentes[4] = carte[t].([]interface{})[c+1]
+						casesAdjacentes[5] = carte[t+1].([]interface{})[c-1]
+						casesAdjacentes[6] = carte[t+1].([]interface{})[c]
+						casesAdjacentes[7] = carte[t+1].([]interface{})[c+1]
+					}
+				}
+
+				if t == 4 {
+					if c == 0 {
+						casesAdjacentes[0] = mur
+						casesAdjacentes[1] = carte[t-1].([]interface{})[c]
+						casesAdjacentes[2] = carte[t-1].([]interface{})[c+1]
+						casesAdjacentes[3] = mur
+						casesAdjacentes[4] = carte[t].([]interface{})[c+1]
+						casesAdjacentes[5] = mur
+						casesAdjacentes[6] = mur
+						casesAdjacentes[7] = mur
+					}
+					if c == 4 {
+						casesAdjacentes[0] = carte[t-1].([]interface{})[c-1]
+						casesAdjacentes[1] = carte[t-1].([]interface{})[c]
+						casesAdjacentes[2] = mur
+						casesAdjacentes[3] = carte[t].([]interface{})[c-1]
+						casesAdjacentes[4] = mur
+						casesAdjacentes[5] = mur
+						casesAdjacentes[6] = mur
+						casesAdjacentes[7] = mur
+					}
+					if c == 1 || c == 2 || c == 3 {
+						casesAdjacentes[0] = carte[t-1].([]interface{})[c-1]
+						casesAdjacentes[1] = carte[t-1].([]interface{})[c]
+						casesAdjacentes[2] = carte[t-1].([]interface{})[c+1]
+						casesAdjacentes[3] = carte[t].([]interface{})[c-1]
+						casesAdjacentes[4] = carte[t].([]interface{})[c+1]
+						casesAdjacentes[5] = mur
+						casesAdjacentes[6] = mur
+						casesAdjacentes[7] = mur
+					}
+				}
+
+				for i := 0; i < len(casesAdjacentes); i++ {
+					if casesAdjacentes[i] == joueur {
+						if casesAdjacentes[1] == joueur || casesAdjacentes[3] == joueur || casesAdjacentes[4] == joueur || casesAdjacentes[6] == joueur {
+							fmt.Println("L'ennemi est arrivé")
+						}
+
+						if casesAdjacentes[0] == joueur || casesAdjacentes[2] == joueur || casesAdjacentes[5] == joueur || casesAdjacentes[7] == joueur {
+							fmt.Println("L'ennemi est en case 2")
+						}
+					}
+				}
+
+				// Permet de trier l'interface en skipant tout ce qui n'est pas des int
+				var casesAdjacentesTrie []interface{}
+
+				for i := 0; i < len(casesAdjacentes); i++ {
+					casesAdjacentesTrie = append(casesAdjacentesTrie, casesAdjacentes[i])
+				}
+
+				var intSlice []int
+
+				for _, element := range casesAdjacentesTrie {
+					if value, isInt := element.(int); isInt {
+						intSlice = append(intSlice, value)
+					}
+				}
+
+				triCroissant(casesAdjacentesTrie)
+
+				fmt.Println(casesAdjacentes, "(", cooEnnemiX, cooEnnemiY, ")", casesAdjacentesTrie)
+			}
+		}
+	}
+}
+
+// Trier une interface par ordre croissant
+func triCroissant(interfaceSlice []interface{}) {
+	for i := 1; i < len(interfaceSlice); i++ {
+		j := i
+		for j > 0 && interfaceSlice[j-1].(string) > interfaceSlice[j].(string) {
+			interfaceSlice[j], interfaceSlice[j-1] = interfaceSlice[j-1], interfaceSlice[j]
+			j--
+		}
+	}
+}
+
+func PathGeneration() {
+	// Vérifie si la position du joueur est un mur ou un ennemi
+	if carte[tableauJoueur].([]interface{})[caseJoueur] == mur || carte[tableauJoueur].([]interface{})[caseJoueur] == ennemi {
+		carte[4].([]interface{})[0] = joueur
+	}
+
+	// Détermine la position du joueur dans la carte
+	for i := 0; i < len(carte); i++ {
+		for j := 0; j < len(carte[i].([]interface{})); j++ {
+			if carte[i].([]interface{})[j] == joueur {
+				joueurX = j
+				joueurY = i
+
+				break
+			}
+		}
+	}
+
+	// Parcours la carte pour définir les valeurs des autres cases
+	for distance := 1; distance < len(carte)*len(carte[0].([]interface{})); distance++ {
+		for i := 0; i < len(carte); i++ {
+			for j := 0; j < len(carte[i].([]interface{})); j++ {
+				// Ignore les cases qui sont des murs ou des ennemis
+				if carte[i].([]interface{})[j] == mur || carte[i].([]interface{})[j] == ennemi {
+					continue
+				}
+
+				// Calcule la distance entre la case actuelle et le joueur
+				dx := joueurX - j
+				dy := joueurY - i
+				if dx < 0 {
+					dx = -dx
+				}
+				if dy < 0 {
+					dy = -dy
+				}
+				dist := dx + dy
+
+				// Ignore les cases qui sont plus éloignées que la distance actuelle
+				if dist != distance {
+					continue
+				}
+
+				// Définit la valeur de la case actuelle
+				carte[i].([]interface{})[j] = strconv.Itoa(valeurInitCase) // strconv.Itoa() permet de convertir un int en string pour les assigner aux cases de la carte
+			}
+		}
+
+		// Incrémente la valeur pour les cases adjacentes à la distance actuelle
+		valeurInitCase++
+	}
 }
 
 func SelectionNiveau() {
@@ -144,61 +386,65 @@ func SelectionNiveau() {
 		carte[2].([]interface{})[4] = ennemi
 	}
 
-	// Changer tout les setup de spawn d'ennemi en dessous
-
 	if niveau == 2 {
-		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[0].([]interface{})[2] = ennemi
+		carte[1].([]interface{})[4] = ennemi
 	}
 
 	if niveau == 3 {
-		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[1].([]interface{})[4] = ennemi
 	}
 
 	if niveau == 4 {
-		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[0].([]interface{})[1] = ennemi
 	}
 
 	if niveau == 5 {
-		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[0].([]interface{})[1] = ennemi
+		carte[1].([]interface{})[4] = ennemi
+		carte[4].([]interface{})[4] = ennemi
 	}
 
 	if niveau == 6 {
 		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[1].([]interface{})[3] = ennemi
+		carte[4].([]interface{})[4] = ennemi
 	}
 
 	if niveau == 7 {
-		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[1].([]interface{})[2] = ennemi
+		carte[3].([]interface{})[4] = ennemi
 	}
 
 	if niveau == 8 {
 		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[4].([]interface{})[3] = ennemi
 	}
 
 	if niveau == 9 {
-		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[0].([]interface{})[0] = ennemi
+		carte[2].([]interface{})[2] = ennemi
+		carte[3].([]interface{})[4] = ennemi
+		carte[4].([]interface{})[2] = ennemi
 	}
 
 	if niveau == 10 {
-		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[0].([]interface{})[0] = ennemi
+		carte[1].([]interface{})[2] = ennemi
+		carte[2].([]interface{})[3] = ennemi
+		carte[3].([]interface{})[4] = ennemi
 	}
 
 	if niveau == 11 {
+		carte[0].([]interface{})[1] = ennemi
 		carte[0].([]interface{})[3] = ennemi
 		carte[2].([]interface{})[4] = ennemi
 	}
 
 	if niveau == 12 {
-		carte[0].([]interface{})[3] = ennemi
-		carte[2].([]interface{})[4] = ennemi
+		carte[1].([]interface{})[2] = ennemi
+		carte[1].([]interface{})[4] = ennemi
+		carte[3].([]interface{})[4] = ennemi
 	}
 }
 
@@ -233,4 +479,5 @@ func Afficher() {
 	for i := 0; i < len(carte); i++ {
 		fmt.Printf("%v\n", carte[i])
 	}
+	fmt.Println("---------------------------------------")
 }
